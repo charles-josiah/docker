@@ -1,0 +1,25 @@
+##Ambiente de proxy reverso baseado na ferramenta: 
+##Link: https://nginxproxymanager.com
+##Utiliado versão 2.4.0 pois versão mais novas apresentam falha na importação do certificado.
+
+version: '3'
+services:
+  app:
+    image: 'jc21/nginx-proxy-manager:2.4.0'
+    ports:
+      - '80:80'
+      - '81:81'
+      - '443:443'
+    volumes:
+      - ./proxy/config.json:/app/config/production.json
+      - ./proxy/data:/data
+      - ./proxy/letsencrypt:/etc/letsencrypt
+  db:
+    image: 'jc21/mariadb-aria:10.4'
+    environment:
+      MYSQL_ROOT_PASSWORD: 'npm'
+      MYSQL_DATABASE: 'npm'
+      MYSQL_USER: 'npm'
+      MYSQL_PASSWORD: 'd6tJtNFSNaAeE#3##@25)(*'
+    volumes:
+      - ./proxy/data/mysql:/var/lib/mysql
