@@ -1,0 +1,134 @@
+#####
+# Docker compose para iniciar uma infra-estrutura:
+# 1 - mysql: 8.0.20 - MySQL Community 
+# 1 - Redis: Latest
+# 2 - Two backends running java
+# 1 - Nginx Reverse Proxy
+# 1 - Frontend with Laravel
+# Ultima alteração: 02/06/2020 
+
+
+version: '3.3'
+
+services:
+  db:
+    container_name: db
+    image: mysql:latest
+    restart: unless-stopped 
+    environment:
+      MYSQL_ROOT_PASSWORD: TWluaGFGaWxoYUhlbGVuYUxpbmRhCg== 
+    ports:
+      - '3306:3306'
+    expose:
+      - '3306' 
+    volumes:
+      - /home/mysql/data:/var/lib/mysql:rw #Sharing databases files on host to backup and make permanet 
+      - /home/mysql/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      f_net:
+        ipv4_address: 172.18.0.2 
+  
+  redis:
+    container_name: redis
+    image: 'bitnami/redis:latest'
+    restart: unless-stopped
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    links:
+      - db
+      - apiback01 
+      - apiback02
+    networks:
+      f_net:
+        ipv4_address: 172.18.0.3
+
+  apiback01:
+    container_name: apiback01
+    build:
+      context: /home/docker/apiback01
+      dockerfile: dockerfile
+    restart: unless-stopped
+    ports: 
+      - 8083:8083
+    expose:
+      - '8083'
+    depends_on:
+      - db
+    links:
+      - db
+    networks:
+      f_net:
+        ipv4_address: 172.18.0.4
+
+  apiback02:
+    container_name: apiback02
+    build:
+      context: /home/docker/apiback01 
+      dockerfile: dockerfile
+    restart: unless-stopped
+    ports:
+      - 8089:8089
+    environment:
+      - SERVER_PORT=8089
+    expose:
+      - 8089
+    depends_on:
+      - db
+    links:
+      - db
+    networks:
+      f_net:
+        ipv4_address: 172.18.0.5
+
+  nginx:
+    container_name: 'nginx-service'
+    build:
+      context:  /home/docker/nginx_https_docker/
+      dockerfile: docker/nginx.Dockerfile
+    restart: unless-stopped
+    ports:
+      - 80:80
+      - 443:443
+    links:
+      - db
+      - redis
+      - apiback01 
+      - apiback02
+      - front01
+    volumes:
+      - /home/nginx_https_docker/:/config
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /tmp/acme_challenge:/tmp/acme_challenge
+      - /var/log/nginx:/var/log/nginx
+    networks:
+      f_net:
+        ipv4_address: 172.18.0.6
+
+  front01: 
+    container_name: 'front01'
+    build:
+      context:  /home/docker/front01 
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - db
+    links:
+      - db
+      - redis
+      - apiback01 
+      - apiback02
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /tmp/acme_challenge:/tmp/acme_challenge
+      - /var/log/:/var/log/front01
+    networks:
+      f_net:
+        ipv4_address: 172.18.0.7
+
+networks:
+  f_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.18.0.0/16
+          gateway: 172.18.0.1
