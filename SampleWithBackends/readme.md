@@ -10,4 +10,4 @@
 
 ### Network Diagram 
 
-![Network](/docker-env-sample.png "Network Diagram")
+![Network](docker-env-sample.png "Network Diagram")
