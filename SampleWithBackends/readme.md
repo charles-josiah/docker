@@ -8,6 +8,6 @@
 -  1x Nginx Reverse Proxy
 -  1x Frontend with Laravel
 
-### Network Diagram 
+### Environment Diagram 
 
-![Network](docker-env-sample.png "Network Diagram")
+![Network](docker-env-sample.png "Environment Diagram")
