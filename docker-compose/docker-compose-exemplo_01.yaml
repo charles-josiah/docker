@@ -1,0 +1,61 @@
+version: '3.3'
+
+services:
+  
+  redis:
+    container_name: redis
+    image: 'bitnami/redis:latest'
+    restart: unless-stopped
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    ports:
+      - 127.0.0.1:6379:6379
+    networks:
+      f_net:
+        ipv4_address: 10.188.10.3
+
+  db:
+    image: mysql:latest
+    ports:
+      - 3306:3306
+    volumes:
+      - ./mysql/db/:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=a=*>Pj#_2y6
+      - MYSQL_DATABASE=admin
+    networks:
+      f_net:
+        ipv4_address: 10.188.10.4
+
+  nginx:
+    container_name: 'nginx-proxy'
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - 80:80
+      - 443:443
+    links:
+      - redis
+    volumes:
+      - /docker/nginx/config/default_root:/usr/share/nginx/html
+      - /docker/nginx/config:/etc/nginx:ro
+      - /www/front:/www/front:ro
+      - /storage/repositorio:/storage/repositorio:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /tmp/acme_challenge:/tmp/acme_challenge
+      - /var/log/nginx:/var/log/nginx
+    extra_hosts:
+      - "apihost:10.188.10.1"
+      - "tre:4.3.2.1"
+    networks:
+      f_net:
+        ipv4_address: 10.188.10.6
+
+networks:
+  f_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.188.10.0/24
+          gateway: 10.188.10.1
+
