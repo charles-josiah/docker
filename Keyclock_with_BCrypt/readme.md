@@ -115,21 +115,6 @@ SET
     version = 4
 WHERE credential_data LIKE '%bcrypt%';
 ```
-```
-{
-  "username": "migration_test_user",
-  "enabled": true,
-  "credentials": [
-    {
-      "type": "password",
-      "credentialData": "{\"hashIterations\":-1,\"algorithm\":\"bcrypt\",\"additionalParameters\":{}}",
-      "secretData": "{\"value\":\"$2a$10$HASH_GOES_HERE\",\"salt\":\"\",\"additionalParameters\":{}}"
-    }
-  ]
-}
-
-```
-
 ## 🛠  2. Below is an example of a user import file containing password credentials using the BCrypt algorithm:
 
 ```
@@ -147,7 +132,20 @@ WHERE credential_data LIKE '%bcrypt%';
   }
 ]
 ```
+```
+{
+  "username": "migration_test_user",
+  "enabled": true,
+  "credentials": [
+    {
+      "type": "password",
+      "credentialData": "{\"hashIterations\":-1,\"algorithm\":\"bcrypt\",\"additionalParameters\":{}}",
+      "secretData": "{\"value\":\"$2a$10$HASH_GOES_HERE\",\"salt\":\"\",\"additionalParameters\":{}}"
+    }
+  ]
+}
 
+```
 
 
 Important Note: 
