@@ -1,21 +1,24 @@
-======================================================================
-KEYCLOAK 26 MIGRATION GUIDE: BCRYPT SUPPORT (PHP/LARAVEL)
-======================================================================
-Status: Environment Validated (Keycloak 26.0.5)
-Provider: keycloak-bcrypt-1.7.0.jar
-Updated: 2026-03-12
-======================================================================
+# KEYCLOAK 26 ENVIRONMENT GUIDE: BCRYPT SUPPORT (PHP/LARAVEL)
 
-1. DIRECTORY STRUCTURE
-----------------------------------------------------------------------
-.
-├── docker-compose.yml
-├── providers/
-│   └── keycloak-bcrypt-1.7.0.jar  # Custom SPI JAR
-└── data/                          # Postgres persistence volume
+**Status:** Environment Validated (Keycloak 26.0.5)\
+**Provider:** keycloak-bcrypt-1.7.0.jar\
+**Updated:** 2026-03-12
 
-2. DOCKER-COMPOSE.YML
-----------------------------------------------------------------------
+------------------------------------------------------------------------
+
+## 1. Directory Structure
+
+    .
+    ├── docker-compose.yml
+    ├── providers/
+    │   └── keycloak-bcrypt-1.7.0.jar  # Custom SPI JAR
+    └── data/                          # Postgres persistence volume
+
+------------------------------------------------------------------------
+
+## 2. docker-compose.yml (Validated YAML)
+
+``` yaml
 services:
   keycloak_db:
     image: postgres:15
@@ -45,67 +48,110 @@ services:
       - "8080:8080"
     depends_on:
       - keycloak_db
+```
 
-3. ACTIVATION & BUILD (QUARKUS)
-----------------------------------------------------------------------
-Keycloak 26 requires a build step to register custom providers:
+------------------------------------------------------------------------
 
-# 1. Trigger the build
-docker compose exec keycloak /opt/keycloak/bin/kc.sh build
+## 3. Activation 
 
-# 2. Restart the stack
-docker compose restart keycloak
+To configure Keycloak to use the BCrypt JAR file:
 
-# 3. Verification
-Go to: Server Info -> Providers -> Password Hashing -> Confirm 'bcrypt' is listed.
+Navegate to:
 
-4. REALM PASSWORD POLICY
-----------------------------------------------------------------------
-You MUST enable the policy in the UI:
-1. Authentication -> Policies -> Password Policy.
-2. Add Policy -> Select 'BCrypt'.
-3. Click Save.
+    Authentication -> Policies -> Password Policy.
 
-5. EXPERIMENTAL DATA STANDARDS & SQL
-----------------------------------------------------------------------
-*** CAUTION: EXPERIMENTAL STATUS - REQUIRES FIELD TESTING ***
-Direct SQL updates bypass Keycloak's internal logic and may cause 
-cache desynchronization with Infinispan.
+    Add Policy -> Selecione 'BCrypt'
 
-Key Findings:
-- Entity version MUST be set to 4 for Keycloak 26.
-- Java providers require the $2a$ prefix (PHP $2y$ will fail).
-- hashIterations must be -1 to delegate cost to the hash string.
+    Save.
 
-# SQL Experimental Fix Script:
+<img width="1346" height="754" alt="image" src="https://github.com/user-attachments/assets/47c9d2b6-1436-450d-b985-1fe78f27fd78" />
+
+
+Verification
+
+Navigate to:
+
+    Server Info -> Providers -> Password Hashing
+
+Confirm the presence of:
+
+    bcrypt
+
+
+<img width="813" height="454" alt="image" src="https://github.com/user-attachments/assets/9c2daa94-6dd3-41fd-90f2-893ba77fe79e" />
+
+------------------------------------------------------------------------
+
+## 4. Experimental Data Standards (Under Test)
+
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️ **Caution:** Requires field testing.\
+Direct SQL updates bypass Keycloak internal validation logic.⚠️⚠️⚠️⚠️⚠️⚠️
+
+# Keycloak BCrypt Migration Guide (PHP to Keycloak)
+
+This guide provides the necessary configurations and scripts to enable **Keycloak** to validate password hashes migrated from **PHP** (which typically use the `$2y$` prefix).
+
+## 💡 Migration Logic
+
+To ensure compatibility between PHP's BCrypt and Keycloak's Java-based implementation, the following parameters must be met:
+
+*   **Hash Iterations**: Set to `-1` (this forces Keycloak to use the cost factor already defined in the hash string).
+*   **Entity Version**: Set to `4`.
+*   **Prefix Transformation**: PHP's `$2y$` prefix must be converted to `$2a$` to be recognized by the standard BCrypt library.
+
+---
+
+## 🛠 1. Bulk Update SQL (PHP to Keycloak)
+
+Use the following SQL script to update existing credentials directly in your Keycloak database. This is the fastest way to migrate a large volume of users.
+
+```sql
+-- Update BCrypt credentials to match Keycloak's requirements
 UPDATE credential 
 SET 
     credential_data = '{"hashIterations":-1,"algorithm":"bcrypt","additionalParameters":{}}',
-    secret_data = REPLACE(secret_data, '"$2y$', '"$2a$'), 
-    version = 4,   
-    priority = 10  
-WHERE 
-    type = 'password' 
-    AND (credential_data LIKE '%bcrypt%' OR secret_data LIKE '%$2y$%');
-
-6. JSON PARTIAL IMPORT TEMPLATE
-----------------------------------------------------------------------
+    -- Replaces PHP variant ($2y$) with standard variant ($2a$)
+    secret_data = REPLACE(secret_data, '"$2y$', '"$2a$'),
+    version = 4
+WHERE credential_data LIKE '%bcrypt%';
+```
+```
 {
-  "username": "migrated_user",
+  "username": "migration_test_user",
   "enabled": true,
   "credentials": [
     {
       "type": "password",
       "credentialData": "{\"hashIterations\":-1,\"algorithm\":\"bcrypt\",\"additionalParameters\":{}}",
-      "secretData": "{\"value\":\"$2a$10$HASH_HERE\",\"salt\":\"\",\"additionalParameters\":{}}"
+      "secretData": "{\"value\":\"$2a$10$HASH_GOES_HERE\",\"salt\":\"\",\"additionalParameters\":{}}"
     }
   ]
 }
 
-7. TROUBLESHOOTING
-----------------------------------------------------------------------
-- Monitor Logs: docker logs -f keycloak_migration
-- Clear Cache: If DB updates don't show up, run:
-  docker compose up -d --force-recreate
-- 72 Char Limit: BCrypt ignores characters beyond the 72nd position.
-======================================================================
+```
+
+## 🛠  2. Below is an example of a user import file containing password credentials using the BCrypt algorithm:
+
+```
+[
+  {
+    "username": "user_bcrypt",
+    "enabled": true,
+    "credentials": [
+      {
+        "type": "password",
+        "algorithm": "bcrypt",
+        "hashedSaltedValue": "$2a$10$8.UnVuG9HHgffUDAlk8q2Ou5JL2n17ba6WqEnwfS79Cq7yzrtauW6"
+      }
+    ]
+  }
+]
+```
+
+
+
+Important Note: 
+Ensure you have the BCrypt Password Hashing Provider JAR file installed in your Keycloak deployment (usually in the providers/ or standalone/deployments/ directory) before attempting to authenticate users with these credentials.
+
+
+
