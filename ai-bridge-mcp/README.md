@@ -1,4 +1,13 @@
-# ai-bridge-mcp
+<!--
+title: ai-bridge-mcp - Give Claude Desktop tools to ask ChatGPT and Gemini mid-conversation
+description: A self-hosted MCP (Model Context Protocol) server that adds ask_chatgpt and ask_agy tools to Claude Desktop, letting Claude call OpenAI's API and Google's Gemini (via the Antigravity CLI) without leaving the chat. Runs in Docker, reachable over Tailscale via mcp-remote, with Bearer token auth.
+keywords: Claude MCP server tutorial, custom MCP tool Claude Desktop, mcp-remote claude_desktop_config.json, ask ChatGPT from Claude, FastMCP Bearer token authentication, Antigravity CLI agy Docker, Gemini free tier CLI quota, Claude Desktop Tailscale MCP server, Streamable HTTP MCP Python SDK, self-hosted MCP server Docker Compose
+author: charles-josiah
+-->
+
+# 🤖 ai-bridge-mcp — Ask ChatGPT and Gemini from Inside Claude
+
+**Keywords for search:** Claude MCP server tutorial · custom tool for Claude Desktop · `mcp-remote` + `claude_desktop_config.json` · ask ChatGPT from Claude · Antigravity CLI (`agy`) in Docker · Gemini free tier via CLI · self-hosted MCP server with Bearer auth
 
 An MCP (Model Context Protocol) server that gives Claude two tools:
 
